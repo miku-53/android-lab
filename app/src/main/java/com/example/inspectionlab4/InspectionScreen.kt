@@ -10,9 +10,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 // 教师参考标识；学生须修改三个常量，验收码由教师当堂公布。
-private const val INSPECTOR_NAME = "教师演示"
-private const val STUDENT_SUFFIX = "DEMO"
-private const val CHECK_CODE = "示例"
+private const val INSPECTOR_NAME = "王旭川"
+private const val STUDENT_SUFFIX = "4020"
+private const val CHECK_CODE = "miku"
 
 @Composable
 fun InspectionHome(onEnter: () -> Unit) {
@@ -82,15 +82,49 @@ fun InspectionScreen(controller: InspectionController, onBack: () -> Unit) {
                 }
                 LoadPhase.SUCCESS -> {
                     // TODO 3：从任务列表计算已完成数量，不能写死。
-                    val done = 0
+                    val done = state.tasks.count { it.status == "已完成" }
                     Text("${controller.room} · 共${state.tasks.size}项 · 待巡检${state.tasks.size - done}项 · 已完成${done}项",
                         modifier = Modifier.testTag("summary"), style = MaterialTheme.typography.titleSmall)
                     // TODO 6：增加“全部／仅看待巡检”按钮，更新pendingOnly。
                     // 根据pendingOnly筛选state.tasks，计算visibleTasks，并显示当前显示数量。
                     // 此处起点直接使用全部数据；完成后A203仅待巡检为5项，A204为1项。
-                    val visibleTasks = state.tasks
+                    var pendingOnly by remember { mutableStateOf(false) }
+                    // 显示筛选按钮
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (!pendingOnly) {
+                            Button(onClick = { pendingOnly = false }) { Text("全部") }
+                            OutlinedButton(onClick = { pendingOnly = true }) { Text("仅看待巡检") }
+                        } else {
+                            OutlinedButton(onClick = { pendingOnly = false }) { Text("全部") }
+                            Button(onClick = { pendingOnly = true }) { Text("仅看待巡检") }
+                        }
+                    }
+                    // 根据 pendingOnly 计算 visibleTasks
+                    val visibleTasks = if (pendingOnly) {
+                        state.tasks.filter { it.status == "待巡检" }
+                    } else {
+                        state.tasks
+                    }
+                    // 显示当前项数
+                    Text(
+                        text = "当前显示 ${visibleTasks.size} 项",
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
                     // TODO 4：使用LazyColumn、items和InspectionTaskCard展示visibleTasks。
-                    Text("TODO 4：请在此显示任务列表")
+                    // 使用 LazyColumn 展示任务列表，weight(1f) 让它占据剩余高度
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(visibleTasks, key = { it.id }) { task ->
+                            InspectionTaskCard(task)
+                        }
+                    }
                 }
             }
         }
@@ -102,7 +136,17 @@ fun InspectionTaskCard(task: InspectionTask) {
     Card(Modifier.fillMaxWidth().testTag("task_${task.id}")) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             // TODO 5：用Row组织名称和状态；名称用weight(1f)；下方显示编号和位置。
-            Text("待补全的任务卡片")
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = task.deviceName,
+                    modifier = Modifier.weight(1f)
+
+                )
+                Text(text = task.status)
+            }
+            Text(text = "${task.id} · ${task.location}")
         }
     }
 }
